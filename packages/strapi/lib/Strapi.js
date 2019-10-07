@@ -27,7 +27,7 @@ const initializeHooks = require('./hooks');
 const createStrapiFs = require('./core/fs');
 const getPrefixedDeps = require('./utils/get-prefixed-dependencies');
 
-const { initializeDatabase } = require('strapi-dbal');
+const { createDatabaseManager } = require('strapi-dbal');
 
 /**
  * Construct an Strapi instance.
@@ -302,7 +302,8 @@ class Strapi extends EventEmitter {
     // Init core store
     initCoreStore(this);
 
-    this.db = await initializeDatabase(this);
+    this.db = createDatabaseManager(this);
+    await this.db.initialize();
 
     // Initialize hooks and middlewares.
     await initializeMiddlewares.call(this);
@@ -399,13 +400,7 @@ class Strapi extends EventEmitter {
   }
 
   getModel(modelKey, plugin) {
-    let key = modelKey.toLowerCase();
-    return plugin === 'admin'
-      ? _.get(strapi.admin, ['models', key], undefined)
-      : _.get(strapi.plugins, [plugin, 'models', key]) ||
-          _.get(strapi, ['models', key]) ||
-          _.get(strapi, ['groups', key]) ||
-          undefined;
+    return this.db.getModel(modelKey, plugin)
   }
 
   /**
